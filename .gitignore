@@ -1,0 +1,8 @@
+*~
+*.pyc
+ws/.catkin_tools/
+ws/build/
+ws/devel/
+ws/logs/
+extras/.bash_history
+.vscode
