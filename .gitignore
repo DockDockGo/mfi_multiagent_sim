@@ -6,3 +6,4 @@ ws/devel/
 ws/logs/
 extras/.bash_history
 .vscode
+.catkin_tools
