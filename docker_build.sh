@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker network create --driver=bridge --subnet=172.20.20.0/24 --ip-range=172.20.20.0/24 subt_multi_uav_network
+docker network create --driver=bridge --subnet=172.20.20.0/24 --ip-range=172.20.20.0/24 mfi_multi_agent_network
 
 #git submodule update --init
 #git clone git@bitbucket.org:castacks/firmwaresubt.git
@@ -13,6 +13,7 @@ mv temporary_location_for_src/ ws/src
 docker build --no-cache --network=host -t mfi_multi_agent -f docker/MFIMultiAgent.dockerfile .
 
 #exit
+xhost +
 
 XAUTH=/tmp/.docker.xauth
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -41,20 +42,20 @@ ls -FAlh $XAUTH
 echo ""
 echo "Running docker..."
 
-# docker run -it \
-#     --env="DISPLAY=$DISPLAY" \
-#     --env="QT_X11_NO_MITSHM=1" \
-#     --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-#     --env="XAUTHORITY=$XAUTH" \
-#     --volume="$XAUTH:$XAUTH" \
-#     --hostname=uav3 \
-#     --volume $SCRIPT_DIR/extras/.bashrc:/root/.bashrc \
-#     --volume $SCRIPT_DIR/extras/init.el:/root/.emacs.id/init.el \
-#     --volume $SCRIPT_DIR/extras/inputrc:/etc/inputrc \
-#     --volume $SCRIPT_DIR/ws:/ws \
-#     --privileged \
-#     --runtime=nvidia --env=NVIDIA_VISIBLE_DEVICES=all --env=NVIDIA_DRIVER_CAPABILITIES=all --env=DISPLAY --env=QT_X11_NO_MITSHM=1 --gpus 1 \
-#     subt_multi_uav:latest \
-#     /bin/bash -c "cd ws; catkin build; cd src/firmwaresubt; ./build.sh"
+docker run -it \
+    --env="DISPLAY=$DISPLAY" \
+    --env="QT_X11_NO_MITSHM=1" \
+    --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+    --env="XAUTHORITY=$XAUTH" \
+    --volume="$XAUTH:$XAUTH" \
+    --hostname=mfi \
+    --volume $SCRIPT_DIR/extras/.bashrc:/root/.bashrc \
+    --volume $SCRIPT_DIR/extras/init.el:/root/.emacs.id/init.el \
+    --volume $SCRIPT_DIR/extras/inputrc:/etc/inputrc \
+    --volume $SCRIPT_DIR/ws:/ws \
+    --privileged \
+    --runtime=nvidia --env=NVIDIA_VISIBLE_DEVICES=all --env=NVIDIA_DRIVER_CAPABILITIES=all --env=DISPLAY --env=QT_X11_NO_MITSHM=1 --gpus 1 \
+    mfi_multi_agent:latest \
+    /bin/bash -c "cd /ws; colcon build --symlink-install"
 
 echo "Done."

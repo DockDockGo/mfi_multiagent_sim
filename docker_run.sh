@@ -1,13 +1,6 @@
 #!/bin/bash
 
-ROBOT=$1
-
-HOSTNAME="ds$ROBOT"
-
-if [ "$ROBOT" -gt 4 ] || [ "$ROBOT" -lt 1 ];then
-    echo "ROBOT argument must be between 1 and 4"
-    exit
-fi
+HOSTNAME="mfi"
 
 XAUTH=/tmp/.docker.xauth
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -40,16 +33,18 @@ docker run -it \
     --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
     --env="XAUTHORITY=$XAUTH" \
     --volume="$XAUTH:$XAUTH" \
-    --net subt_multi_uav_network \
     --hostname $HOSTNAME \
     --volume $SCRIPT_DIR/extras/.bashrc:/root/.bashrc \
-    --volume $SCRIPT_DIR/extras/.bash_history:/root/.bash_history \
-    --volume $SCRIPT_DIR/extras/init.el:/root/.emacs.d/init.el \
+    --volume $SCRIPT_DIR/extras/init.el:/root/.emacs.id/init.el \
     --volume $SCRIPT_DIR/extras/inputrc:/etc/inputrc \
+    --volume $SCRIPT_DIR/extras/ddg_scripts:/root/scripts \
     --volume $SCRIPT_DIR/ws:/ws \
     --privileged \
     --runtime=nvidia --env=NVIDIA_VISIBLE_DEVICES=all --env=NVIDIA_DRIVER_CAPABILITIES=all --env=DISPLAY --env=QT_X11_NO_MITSHM=1 --gpus 1 \
-    subt_multi_uav:latest \
-    /bin/bash
+    mfi_multi_agent:latest \
+    /bin/bash -c "cd /root/scripts; . multi_robot_launch.sh"
+
+    # --net mfi_multi_agent_network \
+
 
 echo "Done."

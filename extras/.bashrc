@@ -120,7 +120,7 @@ alias emacs='emacs -nw'
 alias sds='source devel/setup.bash'
 alias worlds='echo /ws/src/core_gazebo_sim/worlds && ls /ws/src/core_gazebo_sim/worlds'
 
-source /ws/devel/setup.bash
-source /ws/src/core_central/scripts/env.sh
+# source /ws/devel/setup.bash
+# source /ws/src/core_central/scripts/env.sh
 export ROBOT_NAME=$ROBOT_NAME
 export ENTITY_ID=$ENTITY_ID

@@ -2,10 +2,12 @@
 *.pyc
 ws/.catkin_tools/
 ws/build/
+ws/install
 ws/devel/
 ws/logs/
 extras/.bash_history
 .vscode
+*/.vscode
 .catkin_tools
 build
 install
