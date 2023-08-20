@@ -3,15 +3,18 @@
 This repo is for simulating two agents case for MFI project.
 
 ### Requirements
+
 #### Docker
+
 Install from the [website](https://docs.docker.com/engine/install/ubuntu/) and [post-install](https://docs.docker.com/engine/install/linux-postinstall/)
 
 ```
 curl https://get.docker.com | sh \
   && sudo systemctl --now enable docker
-  ```
+```
 
 #### Nvidia-docker
+
 ```
 curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
@@ -22,9 +25,15 @@ sudo pkill -SIGHUP dockerd
 ```
 
 #### Nvidia-container-runtime
+
 Please follow the [guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) from Nvidia.
 
+```
+sudo pkill -SIGHUP dockerd
+```
+
 Verify using:
+
 ```
 docker info | grep -i runtime
 ```
