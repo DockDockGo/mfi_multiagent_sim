@@ -1,0 +1,14 @@
+FROM ros:humble
+
+RUN useradd -ms /bin/bash admin
+
+# USER admin
+WORKDIR /home/admin
+
+USER root
+
+RUN git clone https://github.com/sushanthj/robot-setup-tool.git
+
+RUN cd ./robot-setup-tool/package-setup && ./setup-simulation.sh
+
+RUN cd ./ && mkdir worlds

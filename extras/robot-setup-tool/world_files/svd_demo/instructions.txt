@@ -1,0 +1,4 @@
+1. Move all model folders (basically all folders here) to src/neo_simulation2/models folder
+2. Move the svd_demo.world to src/neo_simulation2/worlds folder
+3. >> export MAP_NAME=svd_demo
+4. >> colcon build --symlink-install
