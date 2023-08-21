@@ -3,696 +3,843 @@
 // #include <CBS.h>
 namespace multi_robot_planner
 {
-  MultiRobotPlanner::MultiRobotPlanner() : Node("multi_robot_planner_node")
-  {
-    // Initialize your variables and subscribers here
-    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-
-    get_map_srv_client =
-        this->create_client<nav_msgs::srv::GetMap>("/map_server/map");
-
-    // Not implemented properly
-    map_update_subscriber =
-        this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-            "/map", 10,
-            std::bind(&MultiRobotPlanner::mapCallback, this,
-                      std::placeholders::_1));
-
-    // create a ros2 service call to call planPaths
-    get_multi_plan_service_ =
-        create_service<ddg_multi_robot_srvs::srv::GetMultiPlan>(
-            "/multi_robot_planner/get_plan",
-            [this](
-                const std::shared_ptr<
-                    ddg_multi_robot_srvs::srv::GetMultiPlan::Request>
-                    request,
-                std::shared_ptr<ddg_multi_robot_srvs::srv::GetMultiPlan::Response>
-                    response)
-            {
-              handleGetMultiPlanServiceRequest(request, response);
-            });
-
-    // create a ros2 service call to call updateNamespaces
-    // integrate ros2 params from launch files to get the robotnamespaces
-
-    // CBS object initialization
-    // configure();
-  }
-
-  void MultiRobotPlanner::configure()
-  {
-    // TODO Replace this with a function to pass the maps and location of agents rather than files
-
-    // Instance instance(_map_file_name, _agent_scen_file_name,
-    //                   _agentNum, _agentIdx,
-    //                   _rows, _cols, _num_obstacles, _warehouseWidth);
-
-    // //////////////////////////////////////////////////////////////////////
-    // /// initialize the solver
-    // //////////////////////////////////////////////////////////////////////
-    // CBS cbs(instance, _use_sipp, _display_output_on_screen);
-    // cbs.setPrioritizeConflicts(_prioritizingConflicts);
-    // cbs.setDisjointSplitting(_disjointSplitting);
-    // cbs.setBypass(_bypass);
-    // cbs.setRectangleReasoning(_rectangleReasoning);
-    // cbs.setCorridorReasoning(_corridorReasoning);
-    // cbs.setHeuristicType(_heuristics);
-    // cbs.setTargetReasoning(_targetReasoning);
-    // cbs.setMutexReasoning(_mutexReasoning);
-    // cbs.setSavingStats(_saving_stats);
-    // cbs.setNodeLimit(_nodeLimit);
-  }
-
-  MultiRobotPlanner::~MultiRobotPlanner()
-  {
-    // Perform any cleanup or resource deallocation here
-  }
-
-  void MultiRobotPlanner::updateNamespaces(
-      std::vector<std::string> &robot_namespaces)
-  {
-    // Update the robot namespaces
-    this->robot_namespaces = robot_namespaces;
-  }
-
-  void MultiRobotPlanner::mapCallback(
-      const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
-  {
-    // TODO (@VineetTambe: change this to an actual mpa update this function)
-    // Print out the width and height of the occupancy grid
-    std::cout << "Received map with width=" << msg->info.width
-              << " and height=" << msg->info.height << std::endl;
-  }
-
-  void MultiRobotPlanner::writeMapToFile(
-      std::vector<std::vector<char>> &occupancy_map,
-      const std::string &file_path)
-  {
-    std::ofstream file(file_path);
-    if (!file.is_open())
+    MultiRobotPlanner::MultiRobotPlanner() : Node("multi_robot_planner_node")
     {
-      // RCLCPP_ERROR(rclcpp::get_logger("service_client"), "Failed to open file
-      // for writing");
-      return;
-    }
-    file << "type octile" << std::endl;
-    file << "height " << (int)occupancy_map.size() << std::endl;
-    file << "width " << (int)occupancy_map[0].size() << std::endl;
-    file << "map" << std::endl;
+        clock_ = get_clock();
+        Initialize();
 
-    // Write map data to file
-    for (int i = 0; i < (int)occupancy_map.size(); ++i)
-    {
-      for (int j = 0; j < (int)occupancy_map[0].size(); ++j)
-      {
-        // int index = i * map.info.width + j;
-        file << static_cast<char>(occupancy_map[i][j]);
-      }
-      file << std::endl;
-    }
+        publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
+        timer_ = this->create_wall_timer(
+            500ms, std::bind(&MultiRobotPlanner::timer_callback, this));
 
-    file.close();
+        RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Start multi robot planner!");
 
-    RCLCPP_INFO(rclcpp::get_logger("service_client"), "Map written to file: %s",
-                file_path.c_str());
-  }
+        for (int i = 0; i < _agentNum; i++) {
+            std::string tmp_robot_name = "robot" + std::to_string(i);
+            robot_namespaces.push_back(tmp_robot_name);
 
-  void MultiRobotPlanner::parseMap(std::vector<std::vector<char>> &occupancy_map,
-                                   const nav_msgs::msg::OccupancyGrid &map)
-  {
-    for (int i = 0; i < (int)map.info.height; i++)
-    {
-      for (int j = 0; j < (int)map.info.width; j++)
-      {
-        if (map.data[i * (int)map.info.width + j] > 50)
-        {
-          // RCLCPP_INFO(rclcpp::get_logger("service_client"), "HERE");
-          occupancy_map[i][j] = '@';
+            std::string tmp_goal_topic_name = "/" + tmp_robot_name + "/goal_pose";
+            RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "The topic for agent is: " << tmp_goal_topic_name);
+            rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr tmp_publisher = 
+                this->create_publisher<geometry_msgs::msg::PoseStamped>(tmp_goal_topic_name, 10);
+                agents_pub_pose.push_back(tmp_publisher);
+
+            std::string tmp_pose_topic_name = "/" + tmp_robot_name + "/odom";
+            RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "The topic for agent is: " << tmp_pose_topic_name);
+            rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr tmp_pose_sub = 
+                this->create_subscription<nav_msgs::msg::Odometry>(
+                tmp_pose_topic_name, 10, std::bind(&MultiRobotPlanner::RobotPoseCallback, this, std::placeholders::_1));
+            agents_sub_pose.push_back(tmp_pose_sub);
         }
-        else
-        {
-          occupancy_map[i][j] = '.';
+        std::vector<std::pair<int, int>> planned_paths;
+        std::pair<int, int> tmp_point;
+        tmp_point.first = 2.0;
+        tmp_point.second = 2.0;
+        planned_paths.push_back(tmp_point);
+        tmp_point.first = 1.0;
+        tmp_point.second = 3.0;
+        planned_paths.push_back(tmp_point);
+
+        publishPlannedPaths(planned_paths);
+        printf("Finish multi robot planner!\n");
+
+
+        // // Initialize your variables and subscribers here
+        // tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+        // tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+        // get_map_srv_client =
+        //     this->create_client<nav_msgs::srv::GetMap>("/map_server/map");
+
+        // // Not implemented properly
+        // map_update_subscriber =
+        //     this->create_subscription<nav_msgs::msg::OccupancyGrid>(
+        //         "/map", 10,
+        //         std::bind(&MultiRobotPlanner::mapCallback, this,
+        //                   std::placeholders::_1));
+
+        // // create a ros2 service call to call planPaths
+        // get_multi_plan_service_ =
+        //     create_service<ddg_multi_robot_srvs::srv::GetMultiPlan>(
+        //         "/multi_robot_planner/get_plan",
+        //         [this](
+        //             const std::shared_ptr<
+        //                 ddg_multi_robot_srvs::srv::GetMultiPlan::Request>
+        //                 request,
+        //             std::shared_ptr<ddg_multi_robot_srvs::srv::GetMultiPlan::Response>
+        //                 response)
+        //         {
+        //           handleGetMultiPlanServiceRequest(request, response);
+        //         });
+
+        // // create a ros2 service call to call updateNamespaces
+        // // integrate ros2 params from launch files to get the robotnamespaces
+
+        // // CBS object initialization
+        // // configure();
+    }
+
+    void MultiRobotPlanner::timer_callback()
+    {
+        if (!planner_initialized){
+            return;
         }
-      }
+        // auto message = std_msgs::msg::String();
+        // message.data = "Hello, world! " + std::to_string(count_++);
+        // RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+        // publisher_->publish(message);
+        // for (int i = 0; i < _agentNum; i++) {
+        //     std::string tmp_topic_name = "/robot" + std::to_string(i) + "/goal_pose";
+        //     // RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "The topic for agent is: " << tmp_topic_name);
+
+        //     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr tmp_publisher = 
+        //     this->create_publisher<geometry_msgs::msg::PoseStamped>(tmp_topic_name, 10);
+        //     agents_pub_pose.push_back(tmp_publisher);
+        // }
+        std::vector<std::pair<int, int>> planned_paths;
+        callCBS(planned_paths);
+
+        std::pair<int, int> tmp_point;
+        tmp_point.first = 13.0;
+        tmp_point.second = 0.0;
+        planned_paths.push_back(tmp_point);
+
+        tmp_point.first = 14.0;
+        tmp_point.second = 1.0;
+        planned_paths.push_back(tmp_point);
+
+
+        publishPlannedPaths(planned_paths);
     }
-    // TODO change file naming method
-    writeMapToFile(occupancy_map, _map_file_name);
-  }
 
-  void MultiRobotPlanner::printMap(std::vector<std::vector<char>> &map)
-  {
-    for (int i = 0; i < (int)map.size(); i++)
+    void MultiRobotPlanner::RobotPoseCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
-      for (int j = 0; j < (int)map[0].size(); j++)
-      {
-        std::cout << map[i][j] << " ";
-      }
-      std::cout << std::endl;
+        if (!planner_initialized){
+            return;
+        }
+        // RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Sub odom: " << msg->header.frame_id);
+        std::string frame_header = msg->header.frame_id;
+
+        unsigned int agent_idx = 0;
+        bool correct_msg = false;
+        try {
+            for (unsigned int i = 0; i < _agentNum; i++){
+                if (frame_header.find(robot_namespaces[i]) != std::string::npos) {
+                    agent_idx = i;
+                    // RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "The agent is: " << agent_idx);
+                    correct_msg = true;
+                    break;
+                }
+            }
+        }
+        catch (const std::exception &ex)
+        {
+            RCLCPP_ERROR(this->get_logger(), "Error in parsing odometry: %s",
+                        ex.what());
+        }
+
+        // RCLCPP_INFO(this->get_logger(), "The agent is: %d, at (%f, %f)", 
+        //     agent_idx, robot_curr_poses[agent_idx].position.x, robot_curr_poses[agent_idx].position.y);
+        if (correct_msg){
+            robot_curr_poses[agent_idx].position.x = msg->pose.pose.position.x;
+            robot_curr_poses[agent_idx].position.y = msg->pose.pose.position.y;
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Error in parsing odometry: %s",
+                        frame_header);
+        }
+
+        // RCLCPP_INFO(this->get_logger(), "The agent is: %d, at (%f, %f)", 
+        //     agent_idx, robot_curr_poses[agent_idx].position.x, robot_curr_poses[agent_idx].position.y);
+
+        // exit(0);
     }
-  }
 
-  void MultiRobotPlanner::handle_response(
-      nav_msgs::srv::GetMap::Response::SharedPtr response)
-  {
-    std::vector<std::vector<char>> occupancy_map;
-    RCLCPP_INFO(this->get_logger(), "inside handle map update response ...");
 
-    try
+    void MultiRobotPlanner::publishPlannedPaths(std::vector<std::pair<int, int>> &planned_paths)
     {
-      occupancy_map.resize(response->map.info.height,
-                           std::vector<char>(response->map.info.width, 0));
-      _map_height = response->map.info.height;
-      _map_width = response->map.info.width;
-      // occupancy_map.resize(response->map.info.height,
-      // std::vector<char>(response->map.info.width, 0));
-      parseMap(occupancy_map, response->map);
+        for (unsigned int i = 0; i < planned_paths.size(); i++) {
+            geometry_msgs::msg::PoseStamped goal_pose;
+            goal_pose.header.frame_id = "map";
+            goal_pose.header.stamp = clock_->now();
+            goal_pose.pose.position.x = planned_paths[i].first * 1.0;
+            goal_pose.pose.position.y = planned_paths[i].second * 1.0;
+            goal_pose.pose.position.z = 0.0;
+            goal_pose.pose.orientation.w = 0.0;
+            agents_pub_pose[i]->publish(goal_pose);
+            // RCLCPP_DEBUG(get_logger(), "Publish message");
+            // RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Publish message");
+        }
+    }
 
-      RCLCPP_INFO(this->get_logger(), "Successfully received map");
+    /**
+    * TODO@Jingtian
+    * transform between coordinates
+    */
+    AgentState MultiRobotPlanner::coordToCBS(geometry_msgs::msg::Pose robot_pose)
+    {
+        AgentState robot_state;
+        robot_state.first = (int) robot_pose.position.x;
+        robot_state.second = (int) robot_pose.position.y;
+        return robot_state;
+    }
 
-      // TODO use timers and return a flag var here
+    geometry_msgs::msg::Pose MultiRobotPlanner::coordToGazebo(AgentState& agent_state)
+    {
+        geometry_msgs::msg::Pose agent_pose;
+        agent_pose.position.x = (float) agent_state.first;
+        agent_pose.position.y = (float) agent_state.second;
+        return agent_pose;
+    }
 
-      std::vector<geometry_msgs::msg::Pose> robot_start_poses;
-      std::vector<geometry_msgs::msg::Pose> robot_goal_poses;
-      // test code
-      geometry_msgs::msg::Pose tempPose;
-      tempPose.position.x = 1.0;
-      tempPose.position.y = 2.0;
-      robot_start_poses.push_back(tempPose);
-      tempPose.position.x = 2.0;
-      tempPose.position.y = 3.0;
-      robot_start_poses.push_back(tempPose);
-      tempPose.position.x = 4.0;
-      tempPose.position.y = 5.0;
-      robot_start_poses.push_back(tempPose);
-      tempPose.position.x = 6.0;
-      tempPose.position.y = 7.0;
-      robot_start_poses.push_back(tempPose);
-      tempPose.position.x = 8.0;
-      tempPose.position.y = 9.0;
-      robot_start_poses.push_back(tempPose);
+    bool MultiRobotPlanner::Initialize()
+    {
+        // This is just dummy code for testing -> replace this with the actual robot pose 
+        // test code
+        geometry_msgs::msg::Pose tempPose;
+        AgentState tmp_state;
+        tempPose.position.x = 0.0;
+        tempPose.position.y = 0.0;
+        robot_start_poses.push_back(tempPose);
+        robot_curr_poses.push_back(tempPose);
+        tmp_state = coordToCBS(tempPose);
+        agent_start_states.push_back(tmp_state);
+        agent_curr_states.push_back(tmp_state);
 
-      tempPose.position.x = 8.0;
-      tempPose.position.y = 9.0;
-      robot_goal_poses.push_back(tempPose);
-      tempPose.position.x = 10.0;
-      tempPose.position.y = 11.0;
-      robot_goal_poses.push_back(tempPose);
-      tempPose.position.x = 12.0;
-      tempPose.position.y = 13.0;
-      robot_goal_poses.push_back(tempPose);
-      tempPose.position.x = 14.0;
-      tempPose.position.y = 15.0;
-      robot_goal_poses.push_back(tempPose);
-      tempPose.position.x = 16.0;
-      tempPose.position.y = 17.0;
-      robot_goal_poses.push_back(tempPose);
+        tempPose.position.x = 0.0;
+        tempPose.position.y = 1.0;
+        robot_start_poses.push_back(tempPose);
+        robot_curr_poses.push_back(tempPose);
+        tmp_state = coordToCBS(tempPose);
+        agent_start_states.push_back(tmp_state);
+        agent_curr_states.push_back(tmp_state);
 
-      bool res = createAgentScenarioFile(robot_start_poses, robot_goal_poses,
-                                         _map_file_name, _map_height, _map_width,
-                                         _agent_scen_file_name);
 
-      // TODO add some sort of mutex here
-      if (!res)
+        tempPose.position.x = 13.0;
+        tempPose.position.y = 0.0;
+        robot_goal_poses.push_back(tempPose);
+        tmp_state = coordToCBS(tempPose);
+        agent_goal_states.push_back(tmp_state);
+
+        tempPose.position.x = 14.0;
+        tempPose.position.y = 1.0;
+        robot_goal_poses.push_back(tempPose);
+        tmp_state = coordToCBS(tempPose);
+        agent_goal_states.push_back(tmp_state);
+
+        // Instance instance("/home/yjt/legoFactory/mfi_multiagent_sim/ws/src/ddg_multi_robot_planner/maps/svddemo-14-44-2.map");
+        instance_ptr = std::make_shared<Instance>("./src/ddg_multi_robot_planner/maps/svddemo-14-44-2.map");
+        instance_ptr->updateAgents(_agentNum, agent_start_states, agent_goal_states);
+	    // instance.printMap();
+        // instance.printAgents();
+
+
+        planner_initialized = true;
+    }
+
+    void MultiRobotPlanner::configure()
+    {
+      // TODO Replace this with a function to pass the maps and location of agents rather than files
+
+      // Instance instance(_map_file_name, _agent_scen_file_name,
+      //                   _agentNum, _agentIdx,
+      //                   _rows, _cols, _num_obstacles, _warehouseWidth);
+
+      // //////////////////////////////////////////////////////////////////////
+      // /// initialize the solver
+      // //////////////////////////////////////////////////////////////////////
+      // CBS cbs(instance, _use_sipp, _display_output_on_screen);
+      // cbs.setPrioritizeConflicts(_prioritizingConflicts);
+      // cbs.setDisjointSplitting(_disjointSplitting);
+      // cbs.setBypass(_bypass);
+      // cbs.setRectangleReasoning(_rectangleReasoning);
+      // cbs.setCorridorReasoning(_corridorReasoning);
+      // cbs.setHeuristicType(_heuristics);
+      // cbs.setTargetReasoning(_targetReasoning);
+      // cbs.setMutexReasoning(_mutexReasoning);
+      // cbs.setSavingStats(_saving_stats);
+      // cbs.setNodeLimit(_nodeLimit);
+    }
+
+    MultiRobotPlanner::~MultiRobotPlanner()
+    {
+      // Perform any cleanup or resource deallocation here
+    }
+
+    void MultiRobotPlanner::updateNamespaces(
+        std::vector<std::string> &robot_namespaces)
+    {
+        // Update the robot namespaces
+        this->robot_namespaces = robot_namespaces;
+    }
+
+    void MultiRobotPlanner::mapCallback(
+        const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
+    {
+      // TODO (@VineetTambe: change this to an actual mpa update this function)
+      // Print out the width and height of the occupancy grid
+      std::cout << "Received map with width=" << msg->info.width
+                << " and height=" << msg->info.height << std::endl;
+    }
+
+    void MultiRobotPlanner::writeMapToFile(
+        std::vector<std::vector<char>> &occupancy_map,
+        const std::string &file_path)
+    {
+      std::ofstream file(file_path);
+      if (!file.is_open())
       {
-        RCLCPP_ERROR(this->get_logger(), "Failed to create scenario file");
-        // return false;
+        // RCLCPP_ERROR(rclcpp::get_logger("service_client"), "Failed to open file
+        // for writing");
         return;
       }
+      file << "type octile" << std::endl;
+      file << "height " << (int)occupancy_map.size() << std::endl;
+      file << "width " << (int)occupancy_map[0].size() << std::endl;
+      file << "map" << std::endl;
 
-      RCLCPP_INFO(this->get_logger(), "Scenario file created running the cbs solver");
-
-      //////////////////////////////////////////////////////////////////////
-      /// run
-      //////////////////////////////////////////////////////////////////////
-
-      Instance instance(_map_file_name, _agent_scen_file_name,
-                        _agentNum, _agentIdx,
-                        _rows, _cols, _num_obstacles, _warehouseWidth);
-
-      CBS cbs(instance, _use_sipp, _display_output_on_screen);
-      cbs.setPrioritizeConflicts(_prioritizingConflicts);
-      cbs.setDisjointSplitting(_disjointSplitting);
-      cbs.setBypass(_bypass);
-      cbs.setRectangleReasoning(_rectangleReasoning);
-      cbs.setCorridorReasoning(_corridorReasoning);
-      cbs.setHeuristicType(_heuristics);
-      cbs.setTargetReasoning(_targetReasoning);
-      cbs.setMutexReasoning(_mutexReasoning);
-      cbs.setSavingStats(_saving_stats);
-      cbs.setNodeLimit(_nodeLimit);
-
-      double runtime = 0;
-      int min_f_val = 0;
-      for (int i = 0; i < _max_runs; i++)
+      // Write map data to file
+      for (int i = 0; i < (int)occupancy_map.size(); ++i)
       {
-        cbs.clear();
-        cbs.solve(_cutoffTime, min_f_val);
-        runtime += cbs.runtime;
-        if (cbs.solution_found)
-          break;
-        min_f_val = (int)cbs.min_f_val;
-        cbs.randomRoot = true;
-      }
-      cbs.runtime = runtime;
-
-      //////////////////////////////////////////////////////////////////////
-      /// write results to files
-      //////////////////////////////////////////////////////////////////////
-      // if (vm.count("output"))
-      //   cbs.saveResults(vm["output"].as<string>(), vm["agents"].as<string>() + ":" + vm["agentIdx"].as<string>());
-      // // cbs.saveCT(vm["output"].as<string>() + ".tree"); // for debug
-      // if (vm["stats"].as<bool>())
-      // {
-      //   cbs.saveStats(vm["output"].as<string>(), vm["agents"].as<string>() + ":" + vm["agentIdx"].as<string>());
-      // }
-      if (cbs.solution_found)
-      {
-        RCLCPP_INFO(this->get_logger(), "Succesfully found a path! Saving it to file");
-
-        // TODO Replace this with a function to get paths from cbs
-        cbs.savePaths(_planned_path_file_name);
-      } else {
-        RCLCPP_ERROR(this->get_logger(), "Failed to find a path!");
-      }
-      cbs.clearSearchEngines();
-
-      // load paths and return them
-      std::vector<nav_msgs::msg::Path> planned_paths;
-      if (readPlannedPathFromFile(_planned_path_file_name, planned_paths))
-      {
-        RCLCPP_INFO(this->get_logger(), "Successfully read planned path from file");
-        RCLCPP_INFO(this->get_logger(), "Yay!");
-        // TODO publish the planned paths
-        // return;
-      } else {
-        RCLCPP_ERROR(this->get_logger(), "Failed to read planned path from file!");
-      }
-    }
-    catch (const std::exception &ex)
-    {
-      RCLCPP_ERROR(this->get_logger(), "Error in parsing occupancy grid: %s",
-                   ex.what());
-    }
-  }
-
-  void MultiRobotPlanner::publishPlannedPaths(std::vector<nav_msgs::msg::Path> &planned_paths)
-  {
-    // TODO publish the planned paths
-
-    // TODO use timers and return a flag var here
-
-    // This is just dummy code for testing -> replace this with the actual robot pose 
-      std::vector<geometry_msgs::msg::Pose> robot_start_poses;
-      std::vector<geometry_msgs::msg::Pose> robot_goal_poses;
-      // test code
-      geometry_msgs::msg::Pose tempPose;
-      tempPose.position.x = 1.0;
-      tempPose.position.y = 2.0;
-      robot_start_poses.push_back(tempPose);
-      tempPose.position.x = 2.0;
-      tempPose.position.y = 3.0;
-      robot_start_poses.push_back(tempPose);
-      tempPose.position.x = 4.0;
-      tempPose.position.y = 5.0;
-      robot_start_poses.push_back(tempPose);
-      tempPose.position.x = 6.0;
-      tempPose.position.y = 7.0;
-      robot_start_poses.push_back(tempPose);
-      tempPose.position.x = 8.0;
-      tempPose.position.y = 9.0;
-      robot_start_poses.push_back(tempPose);
-
-      tempPose.position.x = 8.0;
-      tempPose.position.y = 9.0;
-      robot_goal_poses.push_back(tempPose);
-      tempPose.position.x = 10.0;
-      tempPose.position.y = 11.0;
-      robot_goal_poses.push_back(tempPose);
-      tempPose.position.x = 12.0;
-      tempPose.position.y = 13.0;
-      robot_goal_poses.push_back(tempPose);
-      tempPose.position.x = 14.0;
-      tempPose.position.y = 15.0;
-      robot_goal_poses.push_back(tempPose);
-      tempPose.position.x = 16.0;
-      tempPose.position.y = 17.0;
-      robot_goal_poses.push_back(tempPose);
-
-      bool res = createAgentScenarioFile(robot_start_poses, robot_goal_poses,
-                                         _map_file_name, _map_height, _map_width,
-                                         _agent_scen_file_name);
-
-      // TODO add some sort of mutex here
-      if (!res)
-      {
-        RCLCPP_ERROR(this->get_logger(), "Failed to create scenario file");
-        // return false;
-        return;
-      }
-
-      RCLCPP_INFO(this->get_logger(), "Scenario file created running the cbs solver");
-
-      //////////////////////////////////////////////////////////////////////
-      /// run
-      //////////////////////////////////////////////////////////////////////
-
-      Instance instance(_map_file_name, _agent_scen_file_name,
-                        _agentNum, _agentIdx,
-                        _rows, _cols, _num_obstacles, _warehouseWidth);
-
-      CBS cbs(instance, _use_sipp, 1);
-      cbs.setPrioritizeConflicts(_prioritizingConflicts);
-      cbs.setDisjointSplitting(_disjointSplitting);
-      cbs.setBypass(_bypass);
-      cbs.setRectangleReasoning(_rectangleReasoning);
-      cbs.setCorridorReasoning(_corridorReasoning);
-      cbs.setHeuristicType(_heuristics);
-      cbs.setTargetReasoning(_targetReasoning);
-      cbs.setMutexReasoning(_mutexReasoning);
-      cbs.setSavingStats(_saving_stats);
-      cbs.setNodeLimit(_nodeLimit);
-
-      double runtime = 0;
-      int min_f_val = 0;
-      for (int i = 0; i < _max_runs; i++)
-      {
-        cbs.clear();
-        cbs.solve(_cutoffTime, min_f_val);
-        runtime += cbs.runtime;
-        if (cbs.solution_found)
-          break;
-        min_f_val = (int)cbs.min_f_val;
-        cbs.randomRoot = true;
-      }
-      cbs.runtime = runtime;
-
-      //////////////////////////////////////////////////////////////////////
-      /// write results to files
-      //////////////////////////////////////////////////////////////////////
-      // if (vm.count("output"))
-      //   cbs.saveResults(vm["output"].as<string>(), vm["agents"].as<string>() + ":" + vm["agentIdx"].as<string>());
-      // // cbs.saveCT(vm["output"].as<string>() + ".tree"); // for debug
-      // if (vm["stats"].as<bool>())
-      // {
-      //   cbs.saveStats(vm["output"].as<string>(), vm["agents"].as<string>() + ":" + vm["agentIdx"].as<string>());
-      // }
-      if (cbs.solution_found)
-      {
-        RCLCPP_INFO(this->get_logger(), "Succesfully found a path! Saving it to file");
-
-        // TODO Replace this with a function to get paths from cbs
-        cbs.savePaths(_planned_path_file_name);
-      } else {
-        RCLCPP_ERROR(this->get_logger(), "Failed to find a path!");
-      }
-      cbs.clearSearchEngines();
-
-      // load paths and return them
-      // std::vector<nav_msgs::msg::Path> planned_paths;
-      if (readPlannedPathFromFile(_planned_path_file_name, planned_paths))
-      {
-        RCLCPP_INFO(this->get_logger(), "Successfully read planned path from file");
-        RCLCPP_INFO(this->get_logger(), "Yay!");
-        // TODO publish the planned paths
-        // return;
-      } else {
-        RCLCPP_ERROR(this->get_logger(), "Failed to read planned path from file!");
-      }
-  }
-
-  // Function to read line from a text file and store coordinates in an array
-  bool MultiRobotPlanner::readPlannedPathFromFile(const std::string &filename, std::vector<nav_msgs::msg::Path> &planned_paths)
-  {
-    std::ifstream file(filename);
-    std::string line;
-
-    auto time_stamp = this->get_clock()->now();
-
-    if (file.is_open())
-    {
-      while (std::getline(file, line))
-      {
-        std::string delimiter = ")->";
-        size_t pos = 0;
-        std::string token;
-
-        // Read the agent number
-        int agen_num = line[6] - 48;
-        std::cout << agen_num << std::endl;
-        line.erase(0, 7);
-
-        nav_msgs::msg::Path path;
-
-        path.header.frame_id = "map";
-        path.header.stamp = time_stamp;
-
-        while ((pos = line.find(delimiter)) != std::string::npos)
+        for (int j = 0; j < (int)occupancy_map[0].size(); ++j)
         {
-          // This can be further optimized by moving this outside the
-          // loop and not creating a new object everytime
-          geometry_msgs::msg::PoseStamped pose;
-          pose.header = path.header;
-
-          token = line.substr(0, pos);
-          // Remove any non-digit characters except commas
-          for (char &c : token)
-          {
-            if (!isdigit(c) && c != ',')
-              c = ' ';
-          }
-
-          // Use string stream to extract the numbers separated by commas
-          std::stringstream ss(token);
-          std::string number;
-          std::getline(ss, number, ',');
-          pose.pose.position.x = std::stoi(number);
-          getline(ss, number, ',');
-          pose.pose.position.y = std::stoi(number);
-          line.erase(0, pos + delimiter.length());
-
-          pose.pose.position.z = 0;
-          path.poses.push_back(pose);
+          // int index = i * map.info.width + j;
+          file << static_cast<char>(occupancy_map[i][j]);
         }
-        planned_paths.push_back(path);
+        file << std::endl;
       }
+
       file.close();
-    }
-    else
-    {
-      RCLCPP_ERROR(this->get_logger(), "Failed to open the file: %s", filename.c_str());
-      return false;
+
+      RCLCPP_INFO(rclcpp::get_logger("service_client"), "Map written to file: %s",
+                  file_path.c_str());
     }
 
-    return true;
-  }
-
-  bool MultiRobotPlanner::updateMap()
-  {
-    // Wait for the service to be available
-    while (!get_map_srv_client->wait_for_service(std::chrono::seconds(1)))
+    void MultiRobotPlanner::parseMap(std::vector<std::vector<char>> &occupancy_map,
+                                    const nav_msgs::msg::OccupancyGrid &map)
     {
-      // TODO add a counter to prevent this loop from blocking the thread.
-      if (!rclcpp::ok())
+      for (int i = 0; i < (int)map.info.height; i++)
       {
-        // RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the
-        // service");
-        return false;
+        for (int j = 0; j < (int)map.info.width; j++)
+        {
+          if (map.data[i * (int)map.info.width + j] > 50)
+          {
+            // RCLCPP_INFO(rclcpp::get_logger("service_client"), "HERE");
+            occupancy_map[i][j] = '@';
+          }
+          else
+          {
+            occupancy_map[i][j] = '.';
+          }
+        }
       }
-      RCLCPP_INFO(this->get_logger(), "Service not available, waiting...");
-      return false;
+      // TODO change file naming method
+      writeMapToFile(occupancy_map, _map_file_name);
     }
-    RCLCPP_INFO(this->get_logger(),
-                "making a service request to /map_server/map !");
 
-    auto request = std::make_shared<nav_msgs::srv::GetMap::Request>();
-
-    using ServiceResponseFuture =
-        rclcpp::Client<nav_msgs::srv::GetMap>::SharedFuture;
-    auto response_received_callback = [this](ServiceResponseFuture future)
+    void MultiRobotPlanner::printMap(std::vector<std::vector<char>> &map)
     {
+      for (int i = 0; i < (int)map.size(); i++)
+      {
+        for (int j = 0; j < (int)map[0].size(); j++)
+        {
+          std::cout << map[i][j] << " ";
+        }
+        std::cout << std::endl;
+      }
+    }
+
+    void MultiRobotPlanner::handle_response(
+        nav_msgs::srv::GetMap::Response::SharedPtr response)
+    {
+      std::vector<std::vector<char>> occupancy_map;
+      RCLCPP_INFO(this->get_logger(), "inside handle map update response ...");
+
       try
       {
-        auto response = future.get();
-        RCLCPP_INFO(this->get_logger(), "inside the handle response callback !");
-        handle_response(response);
+        occupancy_map.resize(response->map.info.height,
+                            std::vector<char>(response->map.info.width, 0));
+        _map_height = response->map.info.height;
+        _map_width = response->map.info.width;
+        // occupancy_map.resize(response->map.info.height,
+        // std::vector<char>(response->map.info.width, 0));
+        parseMap(occupancy_map, response->map);
+
+        RCLCPP_INFO(this->get_logger(), "Successfully received map");
+
+        // TODO use timers and return a flag var here
+
+        std::vector<geometry_msgs::msg::Pose> robot_start_poses;
+        std::vector<geometry_msgs::msg::Pose> robot_goal_poses;
+        // test code
+        geometry_msgs::msg::Pose tempPose;
+        tempPose.position.x = 1.0;
+        tempPose.position.y = 2.0;
+        robot_start_poses.push_back(tempPose);
+        tempPose.position.x = 2.0;
+        tempPose.position.y = 3.0;
+        robot_start_poses.push_back(tempPose);
+        tempPose.position.x = 4.0;
+        tempPose.position.y = 5.0;
+        robot_start_poses.push_back(tempPose);
+        tempPose.position.x = 6.0;
+        tempPose.position.y = 7.0;
+        robot_start_poses.push_back(tempPose);
+        tempPose.position.x = 8.0;
+        tempPose.position.y = 9.0;
+        robot_start_poses.push_back(tempPose);
+
+        tempPose.position.x = 8.0;
+        tempPose.position.y = 9.0;
+        robot_goal_poses.push_back(tempPose);
+        tempPose.position.x = 10.0;
+        tempPose.position.y = 11.0;
+        robot_goal_poses.push_back(tempPose);
+        tempPose.position.x = 12.0;
+        tempPose.position.y = 13.0;
+        robot_goal_poses.push_back(tempPose);
+        tempPose.position.x = 14.0;
+        tempPose.position.y = 15.0;
+        robot_goal_poses.push_back(tempPose);
+        tempPose.position.x = 16.0;
+        tempPose.position.y = 17.0;
+        robot_goal_poses.push_back(tempPose);
+
+        bool res = createAgentScenarioFile(robot_start_poses, robot_goal_poses,
+                                          _map_file_name, _map_height, _map_width,
+                                          _agent_scen_file_name);
+
+        // TODO add some sort of mutex here
+        if (!res)
+        {
+          RCLCPP_ERROR(this->get_logger(), "Failed to create scenario file");
+          // return false;
+          return;
+        }
+
+        RCLCPP_INFO(this->get_logger(), "Scenario file created running the cbs solver");
+
+        //////////////////////////////////////////////////////////////////////
+        /// run
+        //////////////////////////////////////////////////////////////////////
+
+        Instance instance(_map_file_name, _agent_scen_file_name,
+                          _agentNum, _agentIdx,
+                          _rows, _cols, _num_obstacles, _warehouseWidth);
+
+        CBS cbs(instance, _use_sipp, _display_output_on_screen);
+        cbs.setPrioritizeConflicts(_prioritizingConflicts);
+        cbs.setDisjointSplitting(_disjointSplitting);
+        cbs.setBypass(_bypass);
+        cbs.setRectangleReasoning(_rectangleReasoning);
+        cbs.setCorridorReasoning(_corridorReasoning);
+        cbs.setHeuristicType(_heuristics);
+        cbs.setTargetReasoning(_targetReasoning);
+        cbs.setMutexReasoning(_mutexReasoning);
+        cbs.setSavingStats(_saving_stats);
+        cbs.setNodeLimit(_nodeLimit);
+
+        double runtime = 0;
+        int min_f_val = 0;
+        for (int i = 0; i < _max_runs; i++)
+        {
+          cbs.clear();
+          cbs.solve(_cutoffTime, min_f_val);
+          runtime += cbs.runtime;
+          if (cbs.solution_found)
+            break;
+          min_f_val = (int)cbs.min_f_val;
+          cbs.randomRoot = true;
+        }
+        cbs.runtime = runtime;
+
+        //////////////////////////////////////////////////////////////////////
+        /// write results to files
+        //////////////////////////////////////////////////////////////////////
+        // if (vm.count("output"))
+        //   cbs.saveResults(vm["output"].as<string>(), vm["agents"].as<string>() + ":" + vm["agentIdx"].as<string>());
+        // // cbs.saveCT(vm["output"].as<string>() + ".tree"); // for debug
+        // if (vm["stats"].as<bool>())
+        // {
+        //   cbs.saveStats(vm["output"].as<string>(), vm["agents"].as<string>() + ":" + vm["agentIdx"].as<string>());
+        // }
+        if (cbs.solution_found)
+        {
+          RCLCPP_INFO(this->get_logger(), "Succesfully found a path! Saving it to file");
+
+          // TODO Replace this with a function to get paths from cbs
+          cbs.savePaths(_planned_path_file_name);
+        } else {
+          RCLCPP_ERROR(this->get_logger(), "Failed to find a path!");
+        }
+        cbs.clearSearchEngines();
+
+        // load paths and return them
+        std::vector<nav_msgs::msg::Path> planned_paths;
+        if (readPlannedPathFromFile(_planned_path_file_name, planned_paths))
+        {
+          RCLCPP_INFO(this->get_logger(), "Successfully read planned path from file");
+          RCLCPP_INFO(this->get_logger(), "Yay!");
+          // TODO publish the planned paths
+          // return;
+        } else {
+          RCLCPP_ERROR(this->get_logger(), "Failed to read planned path from file!");
+        }
       }
-      catch (const std::exception &e)
+      catch (const std::exception &ex)
       {
-        RCLCPP_ERROR(this->get_logger(), "Service call failed: %s", e.what());
+        RCLCPP_ERROR(this->get_logger(), "Error in parsing occupancy grid: %s",
+                    ex.what());
+      }
+    }
+
+
+    void MultiRobotPlanner::callCBS(std::vector<StatePath> &planned_paths)
+    {
+        RCLCPP_INFO(this->get_logger(), "Running the cbs solver");
+
+        //////////////////////////////////////////////////////////////////////
+        /// run
+        //////////////////////////////////////////////////////////////////////
+        
+        // TODO@Jingtian update the instance every time calls this function
+        // instance_ptr->updateAgents(_agentNum, agent_start_states, agent_goal_states);
+
+        CBS cbs(*instance_ptr, _use_sipp, 1);
+        cbs.setPrioritizeConflicts(_prioritizingConflicts);
+        cbs.setDisjointSplitting(_disjointSplitting);
+        cbs.setBypass(_bypass);
+        cbs.setRectangleReasoning(_rectangleReasoning);
+        cbs.setCorridorReasoning(_corridorReasoning);
+        cbs.setHeuristicType(_heuristics);
+        cbs.setTargetReasoning(_targetReasoning);
+        cbs.setMutexReasoning(_mutexReasoning);
+        cbs.setSavingStats(_saving_stats);
+        cbs.setNodeLimit(_nodeLimit);
+
+        double runtime = 0;
+        int min_f_val = 0;
+        for (int i = 0; i < _max_runs; i++)
+        {
+          cbs.clear();
+          cbs.solve(_cutoffTime, min_f_val);
+          runtime += cbs.runtime;
+          if (cbs.solution_found)
+            break;
+          min_f_val = (int)cbs.min_f_val;
+          cbs.randomRoot = true;
+        }
+        cbs.runtime = runtime;
+
+        //////////////////////////////////////////////////////////////////////
+        /// write results to files
+        //////////////////////////////////////////////////////////////////////
+        if (cbs.solution_found)
+        {
+          RCLCPP_INFO(this->get_logger(), "Succesfully found a path! Saving it to file");
+
+          // TODO Replace this with a function to get paths from cbs
+          cbs.getSolvedPaths(planned_paths);
+        } else {
+          RCLCPP_ERROR(this->get_logger(), "Failed to find a path!");
+        }
+        cbs.clearSearchEngines();
+
+        // // load paths and return them
+        // // std::vector<nav_msgs::msg::Path> planned_paths;
+        // if (readPlannedPathFromFile(_planned_path_file_name, planned_paths))
+        // {
+        //   RCLCPP_INFO(this->get_logger(), "Successfully read planned path from file");
+        //   RCLCPP_INFO(this->get_logger(), "Yay!");
+        //   // TODO publish the planned paths
+        //   // return;
+        // } else {
+        //   RCLCPP_ERROR(this->get_logger(), "Failed to read planned path from file!");
+        // }
+    }
+
+    // Function to read line from a text file and store coordinates in an array
+    bool MultiRobotPlanner::readPlannedPathFromFile(const std::string &filename, std::vector<nav_msgs::msg::Path> &planned_paths)
+    {
+      std::ifstream file(filename);
+      std::string line;
+
+      auto time_stamp = this->get_clock()->now();
+
+      if (file.is_open())
+      {
+        while (std::getline(file, line))
+        {
+          std::string delimiter = ")->";
+          size_t pos = 0;
+          std::string token;
+
+          // Read the agent number
+          int agen_num = line[6] - 48;
+          std::cout << agen_num << std::endl;
+          line.erase(0, 7);
+
+          nav_msgs::msg::Path path;
+
+          path.header.frame_id = "map";
+          path.header.stamp = time_stamp;
+
+          while ((pos = line.find(delimiter)) != std::string::npos)
+          {
+            // This can be further optimized by moving this outside the
+            // loop and not creating a new object everytime
+            geometry_msgs::msg::PoseStamped pose;
+            pose.header = path.header;
+
+            token = line.substr(0, pos);
+            // Remove any non-digit characters except commas
+            for (char &c : token)
+            {
+              if (!isdigit(c) && c != ',')
+                c = ' ';
+            }
+
+            // Use string stream to extract the numbers separated by commas
+            std::stringstream ss(token);
+            std::string number;
+            std::getline(ss, number, ',');
+            pose.pose.position.x = std::stoi(number);
+            getline(ss, number, ',');
+            pose.pose.position.y = std::stoi(number);
+            line.erase(0, pos + delimiter.length());
+
+            pose.pose.position.z = 0;
+            path.poses.push_back(pose);
+          }
+          planned_paths.push_back(path);
+        }
+        file.close();
+      }
+      else
+      {
+        RCLCPP_ERROR(this->get_logger(), "Failed to open the file: %s", filename.c_str());
         return false;
       }
-    };
-    auto future_result = get_map_srv_client->async_send_request(
-        request, response_received_callback);
-    return true;
-    // Update the map by calling the GetMap service or any other mechanism
-    // You can use the get_map_srv_client to send a request and receive a response
-  }
 
-  bool MultiRobotPlanner::getRobotPose(
-      std::string &robot_namespace, geometry_msgs::msg::PoseStamped &robot_pose)
-  {
-    // Wait for the transformation to become available
-    std::string target_frame = "map"; // The frame you want the pose in
-    std::string source_frame =
-        robot_namespace + "/" + "base_link"; // The robotX's base frame
-    try
-    {
-      tf_buffer_->lookupTransform(target_frame, source_frame, tf2::TimePointZero,
-                                  tf2::Duration(std::chrono::seconds(1)));
+      return true;
     }
-    catch (tf2::TransformException &ex)
-    {
-      // RCLCPP_ERROR(get_logger(), "Failed to obtain robot pose: %s", ex.what());
-      // exit(EXIT_FAILURE);
-      return false;
-    }
-    // Get the current pose
-    geometry_msgs::msg::TransformStamped transform_stamped;
-    try
-    {
-      transform_stamped = tf_buffer_->lookupTransform(target_frame, source_frame,
-                                                      tf2::TimePointZero);
-    }
-    catch (tf2::TransformException &ex)
-    {
-      // RCLCPP_ERROR(get_logger(), "Failed to obtain robot pose: %s", ex.what());
-      // exit(EXIT_FAILURE);
-      return false;
-    }
-    // Create a PoseStamped message
-    robot_pose.header.frame_id = target_frame;
-    robot_pose.header.stamp = transform_stamped.header.stamp;
-    robot_pose.pose.position.x = transform_stamped.transform.translation.x;
-    robot_pose.pose.position.y = transform_stamped.transform.translation.y;
-    robot_pose.pose.position.z = transform_stamped.transform.translation.z;
-    robot_pose.pose.orientation = transform_stamped.transform.rotation;
-    return true;
-  }
 
-  bool MultiRobotPlanner::updateRobotPoses()
-  {
-    bool ret = true;
-    for (auto &robot_namespace : robot_namespaces)
+    bool MultiRobotPlanner::updateMap()
     {
-      if (robot_curr_poses.find(robot_namespace) == robot_curr_poses.end())
+      // Wait for the service to be available
+      while (!get_map_srv_client->wait_for_service(std::chrono::seconds(1)))
       {
-        robot_curr_poses[robot_namespace] = geometry_msgs::msg::PoseStamped();
+        // TODO add a counter to prevent this loop from blocking the thread.
+        if (!rclcpp::ok())
+        {
+          // RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the
+          // service");
+          return false;
+        }
+        RCLCPP_INFO(this->get_logger(), "Service not available, waiting...");
+        return false;
       }
-      ret =
-          ret && getRobotPose(robot_namespace, robot_curr_poses[robot_namespace]);
-    }
-    return ret;
-  }
+      RCLCPP_INFO(this->get_logger(),
+                  "making a service request to /map_server/map !");
 
-  bool MultiRobotPlanner::createAgentScenarioFile(
-      std::vector<geometry_msgs::msg::Pose> &robot_start_poses,
-      std::vector<geometry_msgs::msg::Pose> &robot_goal_poses,
-      std::string &map_file_name, int &map_height, int &map_width,
-      std::string &file_path)
-  {
-    // Create a scenario file for the CBS algorithm
-    std::ofstream file(file_path);
-    if (!file.is_open())
+      auto request = std::make_shared<nav_msgs::srv::GetMap::Request>();
+
+      using ServiceResponseFuture =
+          rclcpp::Client<nav_msgs::srv::GetMap>::SharedFuture;
+      auto response_received_callback = [this](ServiceResponseFuture future)
+      {
+        try
+        {
+          auto response = future.get();
+          RCLCPP_INFO(this->get_logger(), "inside the handle response callback !");
+          handle_response(response);
+        }
+        catch (const std::exception &e)
+        {
+          RCLCPP_ERROR(this->get_logger(), "Service call failed: %s", e.what());
+          return false;
+        }
+      };
+      auto future_result = get_map_srv_client->async_send_request(
+          request, response_received_callback);
+      return true;
+      // Update the map by calling the GetMap service or any other mechanism
+      // You can use the get_map_srv_client to send a request and receive a response
+    }
+
+    bool MultiRobotPlanner::getRobotPose(
+        std::string &robot_namespace, geometry_msgs::msg::PoseStamped &robot_pose)
     {
-      RCLCPP_ERROR(this->get_logger(), "Unable to open file: %s",
-                   file_path.c_str());
-      return false;
+      // Wait for the transformation to become available
+      std::string target_frame = "map"; // The frame you want the pose in
+      std::string source_frame =
+          robot_namespace + "/" + "base_link"; // The robotX's base frame
+      try
+      {
+        tf_buffer_->lookupTransform(target_frame, source_frame, tf2::TimePointZero,
+                                    tf2::Duration(std::chrono::seconds(1)));
+      }
+      catch (tf2::TransformException &ex)
+      {
+        // RCLCPP_ERROR(get_logger(), "Failed to obtain robot pose: %s", ex.what());
+        // exit(EXIT_FAILURE);
+        return false;
+      }
+      // Get the current pose
+      geometry_msgs::msg::TransformStamped transform_stamped;
+      try
+      {
+        transform_stamped = tf_buffer_->lookupTransform(target_frame, source_frame,
+                                                        tf2::TimePointZero);
+      }
+      catch (tf2::TransformException &ex)
+      {
+        // RCLCPP_ERROR(get_logger(), "Failed to obtain robot pose: %s", ex.what());
+        // exit(EXIT_FAILURE);
+        return false;
+      }
+      // Create a PoseStamped message
+      robot_pose.header.frame_id = target_frame;
+      robot_pose.header.stamp = transform_stamped.header.stamp;
+      robot_pose.pose.position.x = transform_stamped.transform.translation.x;
+      robot_pose.pose.position.y = transform_stamped.transform.translation.y;
+      robot_pose.pose.position.z = transform_stamped.transform.translation.z;
+      robot_pose.pose.orientation = transform_stamped.transform.rotation;
+      return true;
     }
 
-    file << "version 1" << std::endl;
-
-    int bucket = 0;
-    int optimal_length = 1;
-
-    for (int i = 0; i < robot_start_poses.size(); i++)
+    bool MultiRobotPlanner::updateRobotPoses()
     {
-      file << bucket << "\t" << map_file_name << "\t" << map_height << "\t"
-           << map_width << "\t" << robot_start_poses[i].position.x << "\t"
-           << robot_start_poses[i].position.y << "\t"
-           << robot_goal_poses[i].position.x << "\t"
-           << robot_goal_poses[i].position.y << "\t" << optimal_length
-           << std::endl;
+        bool ret = true;
+        //   for (auto &robot_namespace : robot_namespaces)
+        //   {
+        //     if (robot_curr_poses.find(robot_namespace) == robot_curr_poses.end())
+        //     {
+        //       robot_curr_poses[robot_namespace] = geometry_msgs::msg::PoseStamped();
+        //     }
+        //     ret =
+        //         ret && getRobotPose(robot_namespace, robot_curr_poses[robot_namespace]);
+        //   }
+        return ret;   
     }
 
-    file.close();
-
-    RCLCPP_INFO(this->get_logger(), "Agent Scen file written to: %s",
-                file_path.c_str());
-    return true;
-  }
-
-  bool MultiRobotPlanner::planPaths(
-      std::vector<std::string> &robot_namespaces,
-      std::vector<geometry_msgs::msg::Pose> &robot_start_poses,
-      std::vector<geometry_msgs::msg::Pose> &robot_goal_poses,
-      std::vector<nav_msgs::msg::Path> &planned_paths)
-  {
-    updateMap();
-    // std::vector<nav_msgs::msg::Path> planned_paths;
-    // publishPlannedPaths(planned_paths);
-
-    return true;
-  }
-
-  std::vector<geometry_msgs::msg::PoseStamped>
-  MultiRobotPlanner::convertPathToPoseStamped(
-      std::vector<std::pair<int, int>> path)
-  {
-    // Convert the planned path represented as a list of grid positions to
-    // PoseStamped messages
-
-    // Example:
-    // std::vector<geometry_msgs::msg::PoseStamped> pose_stamped_path;
-    // ... convert the path to PoseStamped messages ...
-    // return pose_stamped_path;
-  }
-
-  void MultiRobotPlanner::handleGetMultiPlanServiceRequest(
-      const std::shared_ptr<ddg_multi_robot_srvs::srv::GetMultiPlan::Request>
-          request,
-      std::shared_ptr<ddg_multi_robot_srvs::srv::GetMultiPlan::Response>
-          response)
-  {
-    try
+    bool MultiRobotPlanner::createAgentScenarioFile(
+        std::vector<geometry_msgs::msg::Pose> &robot_start_poses,
+        std::vector<geometry_msgs::msg::Pose> &robot_goal_poses,
+        std::string &map_file_name, int &map_height, int &map_width,
+        std::string &file_path)
     {
-      response->success = planPaths(request->robot_namespaces, request->start,
-                                    request->goal, response->plan);
-      response->robot_namespaces = request->robot_namespaces;
+      // Create a scenario file for the CBS algorithm
+      std::ofstream file(file_path);
+      if (!file.is_open())
+      {
+        RCLCPP_ERROR(this->get_logger(), "Unable to open file: %s",
+                    file_path.c_str());
+        return false;
+      }
+
+      file << "version 1" << std::endl;
+
+      int bucket = 0;
+      int optimal_length = 1;
+
+      for (int i = 0; i < robot_start_poses.size(); i++)
+      {
+        file << bucket << "\t" << map_file_name << "\t" << map_height << "\t"
+            << map_width << "\t" << robot_start_poses[i].position.x << "\t"
+            << robot_start_poses[i].position.y << "\t"
+            << robot_goal_poses[i].position.x << "\t"
+            << robot_goal_poses[i].position.y << "\t" << optimal_length
+            << std::endl;
+      }
+
+      file.close();
+
+      RCLCPP_INFO(this->get_logger(), "Agent Scen file written to: %s",
+                  file_path.c_str());
+      return true;
     }
-    catch (const std::exception &ex)
+
+    bool MultiRobotPlanner::planPaths(
+        std::vector<std::string> &robot_namespaces,
+        std::vector<geometry_msgs::msg::Pose> &robot_start_poses,
+        std::vector<geometry_msgs::msg::Pose> &robot_goal_poses,
+        std::vector<nav_msgs::msg::Path> &planned_paths)
     {
-      // Handle the exception
-      response->success = false;
-      // response->error_message = ex.what();
-      RCLCPP_ERROR(this->get_logger(), "Failed to plan paths: %s", ex.what());
+        updateMap();
+        // std::vector<nav_msgs::msg::Path> planned_paths;
+        // publishPlannedPaths(planned_paths);
+
+        return true;
     }
-    return;
-  }
+
+    
+    void MultiRobotPlanner::convertPathToPoseStamped(
+        StatePath& state_path,
+        std::vector<geometry_msgs::msg::PoseStamped>& pose_path)
+    {
+        // Convert the planned path represented as a list of grid positions to
+        // PoseStamped messages
+
+        // Example:
+        // std::vector<geometry_msgs::msg::PoseStamped> pose_stamped_path;
+        // ... convert the path to PoseStamped messages ...
+        // return pose_stamped_path;
+    }
+
+    void MultiRobotPlanner::handleGetMultiPlanServiceRequest(
+        const std::shared_ptr<ddg_multi_robot_srvs::srv::GetMultiPlan::Request>
+            request,
+        std::shared_ptr<ddg_multi_robot_srvs::srv::GetMultiPlan::Response>
+            response)
+    {
+        try
+        {
+          response->success = planPaths(request->robot_namespaces, request->start,
+                                        request->goal, response->plan);
+          response->robot_namespaces = request->robot_namespaces;
+        }
+        catch (const std::exception &ex)
+        {
+          // Handle the exception
+          response->success = false;
+          // response->error_message = ex.what();
+          RCLCPP_ERROR(this->get_logger(), "Failed to plan paths: %s", ex.what());
+        }
+        return;
+    }
 
 } // namespace multi_robot_planner
 
 int main(int argc, char *argv[])
 {
-  // Initialize the ROS2 node
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<multi_robot_planner::MultiRobotPlanner>());
+    // Initialize the ROS2 node
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<multi_robot_planner::MultiRobotPlanner>());
 
-  // crete a service call to get paths for n robots -> service call.
-  /** Service call accepts the following arguments:
-  0. get the map                      [x]
-  1. start position of the robot      [ ]
-  2. goal postion of the robot        [ ]
-  3. robot namespaces                 [ ]
+    // crete a service call to get paths for n robots -> service call.
+    /** Service call accepts the following arguments:
+    0. get the map                      [x]
+    1. start position of the robot      [x]
+    2. goal postion of the robot        [x]
+    3. robot namespaces                 [x]
 
-  Service call returns the following:
-  1. A hashmap of posestamped messages with pose for each robot.
-  */
+    Service call returns the following:
+    1. A hashmap of posestamped messages with pose for each robot.
+    */
 
-  // TODO call this service call from multi-navigator node.
+    // TODO call this service call from multi-navigator node.
 
-  // Shutdown ROS2
-  rclcpp::shutdown();
-  return 0;
+    /**
+    * Todo @ Jingtian
+    * 1. Write and read file with start and goal location for agents        [x]
+    * 2. Initialize the instance                                            [x]
+    * 3. Subscribe to the robot pose and pushlish next goal                 [x]
+    * 4. Call CBS planner and the path                                      [x]
+    * 5. Map allignment, from coordinate of Gazebo to gridmap               [ ]
+    * 6. Transform the state path, and pub the next state                   [ ]
+    **/
+
+    // Shutdown ROS2
+    rclcpp::shutdown();
+    return 0;
 }
