@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gnome-termial
-cd /home/yjt/legoFactory/mfi_multiagent_sim/ws && . install/setup.bash
+cd ~/codespace/mfi_multiagent_sim/ws && . install/setup.bash
 # Kill previous session
 tmux kill-session
 

@@ -96,20 +96,20 @@ namespace multi_robot_planner
         //     this->create_publisher<geometry_msgs::msg::PoseStamped>(tmp_topic_name, 10);
         //     agents_pub_pose.push_back(tmp_publisher);
         // }
-        std::vector<std::pair<int, int>> planned_paths;
+        std::vector<StatePath> planned_paths;
         callCBS(planned_paths);
 
-        std::pair<int, int> tmp_point;
-        tmp_point.first = 13.0;
-        tmp_point.second = 0.0;
-        planned_paths.push_back(tmp_point);
+        // std::pair<int, int> tmp_point;
+        // tmp_point.first = 13.0;
+        // tmp_point.second = 0.0;
+        // planned_paths.push_back(tmp_point);
 
-        tmp_point.first = 14.0;
-        tmp_point.second = 1.0;
-        planned_paths.push_back(tmp_point);
+        // tmp_point.first = 14.0;
+        // tmp_point.second = 1.0;
+        // planned_paths.push_back(tmp_point);
 
 
-        publishPlannedPaths(planned_paths);
+        // publishPlannedPaths(planned_paths);
     }
 
     void MultiRobotPlanner::RobotPoseCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
@@ -170,6 +170,22 @@ namespace multi_robot_planner
             // RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Publish message");
         }
     }
+
+    // void MultiRobotPlanner::publishPlannedPaths(std::vector<std::pair<int, int>> &planned_paths)
+    // {
+    //     for (unsigned int i = 0; i < planned_paths.size(); i++) {
+    //         geometry_msgs::msg::PoseStamped goal_pose;
+    //         goal_pose.header.frame_id = "map";
+    //         goal_pose.header.stamp = clock_->now();
+    //         goal_pose.pose.position.x = planned_paths[i].first * 1.0;
+    //         goal_pose.pose.position.y = planned_paths[i].second * 1.0;
+    //         goal_pose.pose.position.z = 0.0;
+    //         goal_pose.pose.orientation.w = 0.0;
+    //         agents_pub_pose[i]->publish(goal_pose);
+    //         // RCLCPP_DEBUG(get_logger(), "Publish message");
+    //         // RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Publish message");
+    //     }
+    // }
 
     /**
     * TODO@Jingtian
@@ -775,7 +791,7 @@ namespace multi_robot_planner
     
     void MultiRobotPlanner::convertPathToPoseStamped(
         StatePath& state_path,
-        std::vector<geometry_msgs::msg::PoseStamped>& pose_path)
+        PosePath& pose_path)
     {
         // Convert the planned path represented as a list of grid positions to
         // PoseStamped messages

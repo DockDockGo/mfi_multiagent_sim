@@ -67,7 +67,6 @@ namespace multi_robot_planner
                        std::vector<geometry_msgs::msg::Pose> &robot_start_poses,
                        std::vector<geometry_msgs::msg::Pose> &robot_goal_poses,
                        std::vector<nav_msgs::msg::Path> &planned_paths);
-        std::vector<geometry_msgs::msg::PoseStamped>
         void convertPathToPoseStamped(StatePath& state_path, PosePath& pose_path);
         bool Initialize();
         AgentState coordToCBS(geometry_msgs::msg::Pose robot_pose);
