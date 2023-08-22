@@ -377,6 +377,13 @@ bool Instance::updateAgents(int agent_num,
     }
 }
 
+bool Instance::updateStarts(std::vector<std::pair<int, int>>& agent_start)
+{
+    for (int i = 0; i < num_of_agents; i++) {
+        start_locations[i] = linearizeCoordinate(agent_start[i].first, agent_start[i].second);
+    }
+}
+
 
 bool Instance::loadAgents()
 {

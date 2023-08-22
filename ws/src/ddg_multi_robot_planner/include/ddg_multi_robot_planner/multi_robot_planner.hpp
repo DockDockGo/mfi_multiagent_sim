@@ -19,6 +19,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <deque>
 #include <string>
 #include <sstream>
 #include <chrono>
@@ -28,7 +29,10 @@ using namespace std::chrono_literals;
 
 #define AgentState std::pair<int, int>
 #define StatePath std::vector< std::pair<int, int> >
-#define PosePath std::vector<geometry_msgs::msg::PoseStamped>
+#define PosePath std::vector<geometry_msgs::msg::Pose>
+
+#define AHEAD_TIME 0
+#define EPS 0.3
 
 // struct AgentState{
 //     int x;
@@ -67,12 +71,17 @@ namespace multi_robot_planner
                        std::vector<geometry_msgs::msg::Pose> &robot_start_poses,
                        std::vector<geometry_msgs::msg::Pose> &robot_goal_poses,
                        std::vector<nav_msgs::msg::Path> &planned_paths);
-        void convertPathToPoseStamped(StatePath& state_path, PosePath& pose_path);
+        void convertPathToPosePath(StatePath& state_path, PosePath& pose_path);
         bool Initialize();
         AgentState coordToCBS(geometry_msgs::msg::Pose robot_pose);
         geometry_msgs::msg::Pose coordToGazebo(AgentState& agent_state);
         void callCBS(std::vector<StatePath> &planned_paths);
-
+        void printStatePath(StatePath agent_path);
+        void printPosePath(PosePath robot_path);
+        void publishWaypoint(geometry_msgs::msg::Pose& waypoint, int agent_id);
+        double twoPoseDist(geometry_msgs::msg::Pose& p1, geometry_msgs::msg::Pose p2) {
+            return abs(p1.position.x - p2.position.x) + abs(p1.position.y - p2.position.y);
+        }
     // Private functions
     private:
         void handleGetMultiPlanServiceRequest(
@@ -90,10 +99,13 @@ namespace multi_robot_planner
         void publishPlannedPaths(std::vector<std::pair<int, int>> &planned_paths);
         void timer_callback();
         void RobotPoseCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
+        bool updateRobotPlan(std::vector<StatePath>& robot_state_paths);
 
     // Public variables
     public:
         int _agentNum = 2;          // number of agents | default 2
+        std::vector<std::deque<geometry_msgs::msg::Pose>> robots_paths;
+        std::vector<geometry_msgs::msg::Pose> robot_waypoints;
         std::vector<geometry_msgs::msg::Pose> robot_curr_poses;
         // std::unordered_map<std::string, geometry_msgs::msg::PoseStamped>
         //     robot_curr_poses;
