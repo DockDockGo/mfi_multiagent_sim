@@ -194,16 +194,16 @@ namespace multi_robot_planner
     AgentState MultiRobotPlanner::coordToCBS(geometry_msgs::msg::Pose robot_pose)
     {
         AgentState robot_state;
-        robot_state.first = (int) robot_pose.position.x;
-        robot_state.second = (int) robot_pose.position.y;
+        robot_state.first = (int) round(7.5 - 2*robot_pose.position.y);
+        robot_state.second = (int) round(7.5 + 2*robot_pose.position.x);
         return robot_state;
     }
 
     geometry_msgs::msg::Pose MultiRobotPlanner::coordToGazebo(AgentState& agent_state)
     {
         geometry_msgs::msg::Pose agent_pose;
-        agent_pose.position.x = (float) agent_state.first;
-        agent_pose.position.y = (float) agent_state.second;
+        agent_pose.position.x = 0.5*agent_state.second - 3.75;
+        agent_pose.position.y = -0.5*agent_state.first + 3.75;
         return agent_pose;
     }
 
@@ -245,7 +245,7 @@ namespace multi_robot_planner
         // Instance instance("/home/yjt/legoFactory/mfi_multiagent_sim/ws/src/ddg_multi_robot_planner/maps/svddemo-14-44-2.map");
         instance_ptr = std::make_shared<Instance>("./src/ddg_multi_robot_planner/maps/svddemo-14-44-2.map");
         instance_ptr->updateAgents(_agentNum, agent_start_states, agent_goal_states);
-	    // instance.printMap();
+	    instance_ptr->printMap();
         // instance.printAgents();
 
 

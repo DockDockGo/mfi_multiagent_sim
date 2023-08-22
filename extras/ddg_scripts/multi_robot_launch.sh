@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gnome-termial
-cd ~/codespace/mfi_multiagent_sim/ws && . install/setup.bash
+cd ../../ws && . install/setup.bash
 # Kill previous session
 tmux kill-session
 

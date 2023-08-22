@@ -334,6 +334,7 @@ void Instance::printMap() const
 		}
 		cout << endl;
 	}
+    printf("At location (8, 40), the value is: %d\n", my_map[linearizeCoordinate(8, 40)]);
 }
 
 
