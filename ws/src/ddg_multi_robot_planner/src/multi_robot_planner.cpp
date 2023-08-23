@@ -11,7 +11,7 @@ namespace multi_robot_planner
 
         publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
         timer_ = this->create_wall_timer(
-            5000ms, std::bind(&MultiRobotPlanner::timer_callback, this));
+            1000ms, std::bind(&MultiRobotPlanner::timer_callback, this));
 
         RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Start multi robot planner!");
 
@@ -182,13 +182,22 @@ namespace multi_robot_planner
             robot_curr_poses[agent_idx].position.y = msg->pose.pose.position.y;
             if (twoPoseDist(robot_curr_poses[agent_idx], robot_waypoints[agent_idx]) < EPS) {
                 if (robots_paths[agent_idx].empty()) {
-                    RCLCPP_WARN(this->get_logger(), "Path for agent: %d is empty!", agent_idx);
+                    // RCLCPP_WARN(this->get_logger(), "Path for agent: %d is empty!", agent_idx);
+                    return;
                 } else {
                     robot_waypoints[agent_idx] = robots_paths[agent_idx][0];
                     robots_paths[agent_idx].pop_front();
-                    publishWaypoint(robot_waypoints[agent_idx], agent_idx);
+                    // publishWaypoint(robot_waypoints[agent_idx], agent_idx);
+                    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Publish waypoint for agent %d, at (%f, %f)", 
+                        agent_idx, robot_waypoints[agent_idx].position.x, robot_waypoints[agent_idx].position.y);
                 }
+            } else {
+                // RCLCPP_INFO(this->get_logger(), "Distance for agent: %d bigger than EPS, curr pose: (%f, %f), waypoint: (%f, %f)!", 
+                //     agent_idx, robot_curr_poses[agent_idx].position.x, robot_curr_poses[agent_idx].position.y,
+                //     robot_waypoints[agent_idx].position.x, robot_waypoints[agent_idx].position.y);
+                ;
             }
+            publishWaypoint(robot_waypoints[agent_idx], agent_idx);
         } else {
             RCLCPP_ERROR(this->get_logger(), "Error in parsing odometry: %s",
                         frame_header);
@@ -229,8 +238,8 @@ namespace multi_robot_planner
         // goal_pose.pose.orientation.w = 0.0;
         agents_pub_pose[agent_id]->publish(goal_pose);
         // RCLCPP_DEBUG(get_logger(), "Publish message");
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Publish waypoint for agent %d, at (%f, %f)", 
-            agent_id, goal_pose.pose.position.x, goal_pose.pose.position.y);
+        // RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Publish waypoint for agent %d, at (%f, %f)", 
+        //     agent_id, goal_pose.pose.position.x, goal_pose.pose.position.y);
     }
 
     /**

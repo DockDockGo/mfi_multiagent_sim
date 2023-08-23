@@ -47,7 +47,9 @@ tmux select-pane -t 2
 tmux send-keys "export MAP_NAME=$map" Enter
 tmux send-keys "export MY_ROBOT=mp_400" Enter
 tmux send-keys "export Number_of_Robots=$num_robots" Enter
-tmux send-keys "sleep 7 && ros2 launch neo_nav2_bringup rviz_launch.py rviz_config:=install/neo_nav2_bringup/share/neo_nav2_bringup/rviz/svd_demo_final.rviz" Enter
+# tmux send-keys "sleep 7 && ros2 launch neo_nav2_bringup rviz_launch.py rviz_config:=install/neo_nav2_bringup/share/neo_nav2_bringup/rviz/svd_demo_final.rviz" Enter
+tmux send-keys "sleep 7 && ros2 launch neo_nav2_bringup rviz_launch.py rviz_config:=src/neo_nav2_bringup/rviz/svd_demo_final.rviz" Enter
+
 
 # Run multi-robot commander
 # tmux select-pane -t 3

@@ -32,7 +32,7 @@ using namespace std::chrono_literals;
 #define PosePath std::vector<geometry_msgs::msg::Pose>
 
 #define AHEAD_TIME 0
-#define EPS 0.3
+#define EPS 0.8
 
 // struct AgentState{
 //     int x;
