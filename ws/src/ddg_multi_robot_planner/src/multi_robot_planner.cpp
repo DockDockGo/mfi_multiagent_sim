@@ -134,6 +134,19 @@ namespace multi_robot_planner
         // publishPlannedPaths(planned_paths);
     }
 
+    void MultiRobotPlanner::PublishCBSPath(StatePath& agent_path)
+    {
+        nav_msgs::Path pose_path;
+        for (auto entry: agent_path){
+            geometry_msgs::msg::PoseStamped tmp_pose;
+            tmp_pose.pose = coordToCBS(entry);
+            tmp_pose.header.frame_id = "map";
+            tmp_pose.header.stamp = clock_->now();
+            pose_path
+            // RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Entry is: (%d, %d)", entry.first, entry.second);
+        }
+    }
+
     void MultiRobotPlanner::printStatePath(StatePath agent_path) {
         // RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "The path for agent is: %d", i);
         for (auto entry: agent_path){
