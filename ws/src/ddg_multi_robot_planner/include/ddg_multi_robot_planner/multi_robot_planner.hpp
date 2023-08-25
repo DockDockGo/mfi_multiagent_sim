@@ -100,6 +100,7 @@ namespace multi_robot_planner
         void timer_callback();
         void RobotPoseCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
         bool updateRobotPlan(std::vector<StatePath>& robot_state_paths);
+        void PublishCBSPath(int agent_idx, StatePath& agent_path);
 
     // Public variables
     public:
@@ -126,11 +127,13 @@ namespace multi_robot_planner
         // ROS2 vars
         rclcpp::Clock::SharedPtr clock_;
         std::vector<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr> agents_pub_pose;
+        std::vector<rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> agents_pub_path;
         std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> agents_sub_pose;
         rclcpp::TimerBase::SharedPtr timer_;
         
         bool planner_initialized = false;
-
+        int path_counter_ = 0;
+        
         // test only
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
         size_t count_;

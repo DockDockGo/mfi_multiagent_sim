@@ -25,6 +25,12 @@ namespace multi_robot_planner
                 this->create_publisher<geometry_msgs::msg::PoseStamped>(tmp_goal_topic_name, 10);
                 agents_pub_pose.push_back(tmp_publisher);
 
+            std::string tmp_path_topic_name = "/" + tmp_robot_name + "/cbs_path";
+            RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "The topic for agent is: " << tmp_path_topic_name);
+            rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr tmp_path_publisher = 
+                this->create_publisher<nav_msgs::msg::Path>(tmp_path_topic_name, 10);
+                agents_pub_path.push_back(tmp_path_publisher);
+
             std::string tmp_pose_topic_name = "/" + tmp_robot_name + "/odom";
             RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "The topic for agent is: " << tmp_pose_topic_name);
             rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr tmp_pose_sub = 
@@ -115,11 +121,12 @@ namespace multi_robot_planner
 
         callCBS(planned_paths);
         updateRobotPlan(planned_paths);
-        // for (unsigned int i = 0; i < _agentNum; i++) {
-        //     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "The path for robot is: %d", i);
-        //     printStatePath(planned_paths[i]);
-        //     // printPosePath();
-        // }
+        for (unsigned int i = 0; i < _agentNum; i++) {
+            PublishCBSPath(i, planned_paths[i]);
+            // RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "The path for robot is: %d", i);
+            // printStatePath(planned_paths[i]);
+            // printPosePath();
+        }
 
         // std::pair<int, int> tmp_point;
         // tmp_point.first = 13.0;
@@ -134,17 +141,30 @@ namespace multi_robot_planner
         // publishPlannedPaths(planned_paths);
     }
 
-    void MultiRobotPlanner::PublishCBSPath(StatePath& agent_path)
+    void MultiRobotPlanner::PublishCBSPath(int agent_idx, StatePath& agent_path)
     {
-        nav_msgs::Path pose_path;
+        nav_msgs::msg::Path pose_path;
+        // pose_path.header.seq = path_counter_;
+        // path_counter_++;
+        pose_path.header.frame_id = "map";
+        pose_path.header.stamp = clock_->now();
         for (auto entry: agent_path){
             geometry_msgs::msg::PoseStamped tmp_pose;
-            tmp_pose.pose = coordToCBS(entry);
+            geometry_msgs::msg::Pose tmp_tmp_pose;
+            tmp_tmp_pose = coordToGazebo(entry);
+            // RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Pose is: (%f, %f)", 
+            //     tmp_tmp_pose.position.x, tmp_tmp_pose.position.y);
+            tmp_pose.pose = tmp_tmp_pose;
             tmp_pose.header.frame_id = "map";
             tmp_pose.header.stamp = clock_->now();
-            pose_path
-            // RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Entry is: (%d, %d)", entry.first, entry.second);
+            pose_path.poses.push_back(tmp_pose);
+            // RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "StampPose is: (%f, %f)", 
+            //     tmp_pose.pose.position.x, tmp_pose.pose.position.y);
+            // RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Entry is: (%f, %f)", 
+            //     entry.first, entry.second);
+            
         }
+        agents_pub_path[agent_idx]->publish(pose_path);
     }
 
     void MultiRobotPlanner::printStatePath(StatePath agent_path) {
