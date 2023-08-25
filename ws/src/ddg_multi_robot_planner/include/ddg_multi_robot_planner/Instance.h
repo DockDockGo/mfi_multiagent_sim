@@ -23,6 +23,7 @@ public:
         std::vector<std::pair<int, int>>& agent_goal);
     
     bool updateStarts(std::vector<std::pair<int, int>>& agent_start);
+    bool updateGoals(std::vector<std::pair<int, int>>& agent_goal);
 
 
 	inline bool isObstacle(int loc) const { return my_map[loc]; }

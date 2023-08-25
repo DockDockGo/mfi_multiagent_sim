@@ -334,7 +334,7 @@ void Instance::printMap() const
 		}
 		cout << endl;
 	}
-    printf("At location (8, 40), the value is: %d\n", my_map[linearizeCoordinate(8, 40)]);
+    // printf("At location (8, 40), the value is: %d\n", my_map[linearizeCoordinate(8, 40)]);
 }
 
 
@@ -384,6 +384,12 @@ bool Instance::updateStarts(std::vector<std::pair<int, int>>& agent_start)
     }
 }
 
+bool Instance::updateGoals(std::vector<std::pair<int, int>>& agent_goal)
+{
+    for (int i = 0; i < num_of_agents; i++) {
+        goal_locations[i] = linearizeCoordinate(agent_goal[i].first, agent_goal[i].second);
+    }
+}
 
 bool Instance::loadAgents()
 {

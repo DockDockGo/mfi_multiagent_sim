@@ -6,6 +6,7 @@
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/srv/get_map.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 #include <tf2/exceptions.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.h>
@@ -33,11 +34,18 @@ using namespace std::chrono_literals;
 
 #define AHEAD_TIME 0
 #define EPS 0.8
+#define WAITSTEP 5
 
 // struct AgentState{
 //     int x;
 //     int y;
 // };
+
+// AgentState GLOBAL_START1(8, 7);
+// AgentState GLOBAL_START2(8, 9);
+// AgentState GLOBAL_GOAL1(24, 8);
+// AgentState GLOBAL_GOAL2(26, 8);
+
 
 namespace multi_robot_planner
 {
@@ -101,6 +109,8 @@ namespace multi_robot_planner
         void RobotPoseCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
         bool updateRobotPlan(std::vector<StatePath>& robot_state_paths);
         void PublishCBSPath(int agent_idx, StatePath& agent_path);
+        void PublishSingleMarker(int agent_idx, std::string marker_type);
+        void PublishMarker();
 
     // Public variables
     public:
@@ -127,13 +137,25 @@ namespace multi_robot_planner
         // ROS2 vars
         rclcpp::Clock::SharedPtr clock_;
         std::vector<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr> agents_pub_pose;
+        std::vector<rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr> agents_pub_goal_marker;
+        std::vector<rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr> agents_pub_start_marker;
+
         std::vector<rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> agents_pub_path;
         std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> agents_sub_pose;
+        std::vector<int> at_goal_wait;
+        std::vector<bool> trip_directions;
         rclcpp::TimerBase::SharedPtr timer_;
+
+        std::vector< std::pair<int, int> > next_round_goal;
+        std::vector< std::pair<int, int> > next_round_start;
+
         
         bool planner_initialized = false;
         int path_counter_ = 0;
         
+        std::vector< AgentState > GLOBAL_START;
+        std::vector< AgentState > GLOBAL_GOAL;
+
         // test only
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
         size_t count_;
