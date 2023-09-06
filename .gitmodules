@@ -1,3 +1,3 @@
 [submodule "ws/src/ddg_multi_robot_planner"]
 	path = ws/src/ddg_multi_robot_planner
-	url = https://github.com/DockDockGo/ddg_multi_robot_planner
+	url = git@github.com:DockDockGo/ddg_multi_robot_planner.git
