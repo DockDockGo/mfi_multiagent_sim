@@ -19,7 +19,9 @@ tmux selectp -t 0    # go back to the first pane
 tmux splitw -h -p 33 # split it into two halves
 tmux selectp -t 0    # select the first (0) pane
 tmux splitw -h -p 40 # split it into two halves
-# tmux splitw -h    -p 33 # split it into two halves
+
+tmux selectp -t 3    # go back to the first pane
+tmux splitw -h -p 50 # split it into two halves
 
 # tmux selectp -t 3    # go back to the first pane
 # tmux splitw -h -p 33 # split it into two halves
@@ -56,8 +58,16 @@ tmux select-pane -t 3
 tmux send-keys "export MAP_NAME=\"$map\"" Enter
 tmux send-keys "export MY_ROBOT=mp_400" Enter
 tmux send-keys "export Number_of_Robots=\"$num_robots\"" Enter
-tmux send-keys "ros2 launch ddg_multi_robot_planner multi_robot_planner.launch.py"
+tmux send-keys "sleep 20 && ros2 launch ddg_multi_robot_planner multi_robot_planner.launch.py" Enter 
 # tmux send-keys "sleep 60 && ros2 run multi_navigator multi_commander" Enter 
+
+
+Run multi-robot commander
+tmux select-pane -t 4
+tmux send-keys "export MAP_NAME=\"$map\"" Enter
+tmux send-keys "export MY_ROBOT=mp_400" Enter
+tmux send-keys "export Number_of_Robots=\"$num_robots\"" Enter
+tmux send-keys "sleep 60 && ros2 run multi_navigator multi_commander" Enter 
 
 # Attach to the tmux session
 tmux -2 attach-session -t $session_name -c /ws

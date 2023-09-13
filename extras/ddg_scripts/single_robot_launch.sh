@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # gnome-termial
-cd ~/mp_400_workspace && . install/setup.bash
+cd ../../ws && . install/setup.bash
 # Kill previous session
 tmux kill-session
 
@@ -44,4 +44,4 @@ tmux send-keys "export MY_ROBOT=mp_400" Enter
 tmux send-keys "ros2 launch neo_nav2_bringup rviz_launch.py" Enter
 
 # Attach to the tmux session
-tmux -2 attach-session -t $session_name -c ~/mp_400_workspace
+tmux -2 attach-session -t $session_name -c /ws
