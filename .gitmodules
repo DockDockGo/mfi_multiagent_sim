@@ -1,3 +1,6 @@
 [submodule "ws/src/ddg_multi_robot_planner"]
 	path = ws/src/ddg_multi_robot_planner
 	url = git@github.com:DockDockGo/ddg_multi_robot_planner.git
+[submodule "ws/src/neo_simulation2"]
+	path = ws/src/neo_simulation2
+	url = git@github.com:DockDockGo/neo_simulation2.git
