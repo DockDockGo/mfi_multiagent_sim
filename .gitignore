@@ -11,3 +11,4 @@ extras/.bash_history
 build
 install
 log
+*-backup*

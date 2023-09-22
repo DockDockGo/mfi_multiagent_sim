@@ -2,6 +2,12 @@
 
 This repo is for simulating two agents case for MFI project.
 
+
+To clone this repo run:
+```
+git clone --recursive -j8 -b cbs_planner_updated git@github.com:DockDockGo/mfi_multiagent_sim.git
+```
+
 ### Requirements
 
 #### Docker
