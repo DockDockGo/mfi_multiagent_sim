@@ -7,3 +7,6 @@
 [submodule "ws/src/multi_navigator"]
 	path = ws/src/multi_navigator
 	url = git@github.com:DockDockGo/multi_navigator.git
+[submodule "ws/src/nav2_mppi_controller"]
+	path = ws/src/nav2_mppi_controller
+	url = git@github.com:DockDockGo/nav2_mppi_controller.git
