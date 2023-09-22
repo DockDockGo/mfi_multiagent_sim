@@ -13,3 +13,6 @@
 [submodule "ws/src/ddg_multi_robot_srvs"]
 	path = ws/src/ddg_multi_robot_srvs
 	url = git@github.com:DockDockGo/ddg_multi_robot_srvs.git
+[submodule "extras/ddg_scripts"]
+	path = extras/ddg_scripts
+	url = git@github.com:DockDockGo/ddg_scripts.git
