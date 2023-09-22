@@ -4,3 +4,6 @@
 [submodule "ws/src/neo_simulation2"]
 	path = ws/src/neo_simulation2
 	url = git@github.com:DockDockGo/neo_simulation2.git
+[submodule "ws/src/multi_navigator"]
+	path = ws/src/multi_navigator
+	url = git@github.com:DockDockGo/multi_navigator.git
