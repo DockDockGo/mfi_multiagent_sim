@@ -1,8 +1,0 @@
-string[] robot_namespaces
-geometry_msgs/Pose[] start
-geometry_msgs/Pose[] goal
----
-bool success
-string[] robot_namespaces
-nav_msgs/Path[] plan
- 
