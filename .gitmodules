@@ -16,3 +16,12 @@
 [submodule "extras/ddg_scripts"]
 	path = extras/ddg_scripts
 	url = git@github.com:DockDockGo/ddg_scripts.git
+[submodule "ws/src/robot_action_interfaces"]
+	path = ws/src/robot_action_interfaces
+	url = git@github.com:DockDockGo/robot_action_interfaces.git
+[submodule "ws/src/robot_motion_server"]
+	path = ws/src/robot_motion_server
+	url = git@github.com:DockDockGo/robot_motion_server.git
+[submodule "ws/src/robot_state_machine"]
+	path = ws/src/robot_state_machine
+	url = git@github.com:DockDockGo/robot_state_machine.git
