@@ -25,3 +25,6 @@
 [submodule "ws/src/robot_state_machine"]
 	path = ws/src/robot_state_machine
 	url = git@github.com:DockDockGo/robot_state_machine.git
+[submodule "ws/multi_navigator"]
+	path = ws/multi_navigator
+	url = git@github.com:DockDockGo/multi_navigator.git
