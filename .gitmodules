@@ -31,3 +31,6 @@
 [submodule "extras/robot-setup-tool"]
 	path = extras/robot-setup-tool
 	url = git@github.com:DockDockGo/robot-setup-tool.git
+[submodule "robot-setup-scripts"]
+	path = robot-setup-scripts
+	url = git@github.com:DockDockGo/robot-setup-scripts.git
