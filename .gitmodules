@@ -37,3 +37,6 @@
 [submodule "extras/robot-setup-scripts"]
 	path = extras/robot-setup-scripts
 	url = git@github.com:DockDockGo/robot-setup-scripts.git
+[submodule "ws/src/ddg_waitstep_at_waypoint_plugin"]
+	path = ws/src/ddg_waitstep_at_waypoint_plugin
+	url = git@github.com:DockDockGo/ddg_waitstep_at_waypoint_plugin.git
