@@ -40,3 +40,6 @@
 [submodule "ws/src/ddg_waitstep_at_waypoint_plugin"]
 	path = ws/src/ddg_waitstep_at_waypoint_plugin
 	url = git@github.com:DockDockGo/ddg_waitstep_at_waypoint_plugin.git
+[submodule "ws/src/robot_misson_control"]
+	path = ws/src/robot_misson_control
+	url = git@github.com:DockDockGo/robot_misson_control.git
