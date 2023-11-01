@@ -43,3 +43,6 @@
 [submodule "ws/src/robot_misson_control"]
 	path = ws/src/robot_misson_control
 	url = git@github.com:DockDockGo/robot_misson_control.git
+[submodule "ws/src/ddg_waypoint_follower"]
+	path = ws/src/ddg_waypoint_follower
+	url = git@github.com:DockDockGo/ddg_waypoint_follower.git
