@@ -46,3 +46,9 @@
 [submodule "ws/src/ddg_waypoint_follower"]
 	path = ws/src/ddg_waypoint_follower
 	url = git@github.com:DockDockGo/ddg_waypoint_follower.git
+[submodule "ws/ddg_bringup"]
+	path = ws/ddg_bringup
+	url = git@github.com:DockDockGo/ddg_bringup.git
+[submodule "ws/src/ddg_bringup"]
+	path = ws/src/ddg_bringup
+	url = git@github.com:DockDockGo/ddg_bringup.git
