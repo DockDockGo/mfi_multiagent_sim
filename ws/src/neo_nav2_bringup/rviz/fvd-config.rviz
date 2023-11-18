@@ -6,9 +6,12 @@ Panels:
       Expanded:
         - /Global Options1
         - /robo0_odom1/Shape1
+        - /RobotModel1/Mass Properties1
+        - /RobotModel2/Description Topic1
+        - /RobotModel4/Description Topic1
         - /robo1_odom3/Topic1
       Splitter Ratio: 0.5
-    Tree Height: 727
+    Tree Height: 1093
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -435,7 +438,7 @@ Visualization Manager:
       Enabled: true
       Name: robot0_goal_Marker
       Namespaces:
-        {}
+        robot0: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -448,7 +451,7 @@ Visualization Manager:
       Enabled: true
       Name: robot1_goal_Marker
       Namespaces:
-        {}
+        robot1: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -461,7 +464,7 @@ Visualization Manager:
       Enabled: true
       Name: robot0_start_Marker
       Namespaces:
-        {}
+        robot0: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -474,7 +477,7 @@ Visualization Manager:
       Enabled: true
       Name: robot1_start_Marker
       Namespaces:
-        {}
+        robot1: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -571,7 +574,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /robot_description
+        Value: /robot2/robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -579,6 +582,50 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lidar_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_back_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_back_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_front_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_front_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_fixed_wheel_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_fixed_wheel_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -597,7 +644,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /robot_description
+        Value: /robot0/robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -605,6 +652,50 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lidar_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_back_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_back_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_front_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_front_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_fixed_wheel_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_fixed_wheel_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -623,7 +714,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /robot_description
+        Value: /robot1/robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -631,6 +722,50 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lidar_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_back_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_back_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_front_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_front_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_fixed_wheel_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_fixed_wheel_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -649,7 +784,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /robot_description
+        Value: /robot3/robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -657,6 +792,50 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lidar_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_back_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_back_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_front_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_caster_wheel_front_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_fixed_wheel_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        mp_400_fixed_wheel_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -669,7 +848,7 @@ Visualization Manager:
       Enabled: true
       Name: robot1_start_Marker
       Namespaces:
-        {}
+        robot2: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -682,7 +861,7 @@ Visualization Manager:
       Enabled: true
       Name: robot1_goal_Marker
       Namespaces:
-        {}
+        robot2: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -695,7 +874,7 @@ Visualization Manager:
       Enabled: true
       Name: robot1_start_Marker
       Namespaces:
-        {}
+        robot3: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -708,7 +887,7 @@ Visualization Manager:
       Enabled: true
       Name: robot1_goal_Marker
       Namespaces:
-        {}
+        robot3: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -850,21 +1029,21 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 93.7048110961914
+      Scale: 135.557373046875
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
-      X: 6.980189323425293
-      Y: 0.7451527714729309
+      X: 2.2286741733551025
+      Y: 0.13686378300189972
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1016
+  Height: 1376
   Hide Left Dock: false
   Hide Right Dock: false
   NeoFleetRViz2Plugin:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001f70000039efc0200000008fb0000001200530065006c0065006300740069006f006e000000003d0000039e0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000005fb000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000039e000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000015f00000518fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000006e00000518000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000738000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000c0000000102fc0100000002fc0000000000000c000000000000fffffffaffffffff0200000002fb00000026004e0065006f0046006c006500650074005200560069007a00320050006c007500670069006e0000000000ffffffff0000008600fffffffb0000000800540069006d00650000000390000000460000003900fffffffb0000000800540069006d006501000000000000045000000000000000000000053d0000039e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001f70000050afc0200000008fb0000001200530065006c0065006300740069006f006e000000003d0000039e0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000005fb000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000050a000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000015f00000518fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000006e00000518000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000738000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000c0000000102fc0100000002fc0000000000000c000000000000fffffffaffffffff0200000002fb00000026004e0065006f0046006c006500650074005200560069007a00320050006c007500670069006e0000000000ffffffff0000007c00fffffffb0000000800540069006d00650000000390000000460000003700fffffffb0000000800540069006d00650100000000000004500000000000000000000007bb0000050a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -873,6 +1052,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1850
-  X: 70
+  Width: 2488
+  X: 72
   Y: 27
